@@ -1,37 +1,46 @@
-# Verilog功能模块--SPI主机
+# Verilog功能模块--SPI主机和从机
 
-#### 介绍
-Verilog功能模块--SPI主机
+## 一. 介绍
 
-#### 软件架构
-软件架构说明
+本模块实现了全功能的Verilog的SPI主机与从机，仓库中包含SPI主从回环仿真、AXD112 SPI驱动测试与MAX31865 Demo SPI驱动测试。
 
+## 二. 模块功能
 
-#### 安装教程
+本Verilog功能模块——SPI主机实现了SPI协议要求的完整时序控制，具体功能如下：
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+1. 支持所有4种SPI工作模式
 
-#### 使用说明
+2. 支持任意数据位宽
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+3. 支持任意串行时钟频率fsclk
 
-#### 参与贡献
+4. 支持指定CS下降沿到第一个SCLK边沿的延时
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+5. 支持指定最后SCLK边沿到CS上升沿的延时
 
+6. 支持指定CS高电平持续时间
 
-#### 特技
+## 二、模块框图
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+<img src="https://picgo-dakang.oss-cn-hangzhou.aliyuncs.com/img/Verilog%E5%8A%9F%E8%83%BD%E6%A8%A1%E5%9D%97--SPI%E4%B8%BB%E6%9C%BA%E5%92%8C%E4%BB%8E%E6%9C%BA(02)--SPI%E4%B8%BB%E6%9C%BA%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF%E4%B8%8E%E4%BB%A3%E7%A0%81%E8%A7%A3%E6%9E%90-2.svg" />
+
+## 四. 更多参考
+
+[Verilog功能模块–SPI主机和从机(01)–SPI简介 – 徐晓康的博客](https://www.myhardware.top/verilog功能模块-spi主机和从机01-spi简介/)
+
+[Verilog功能模块–SPI主机和从机(02)–SPI主机设计思路与代码解析 – 徐晓康的博客](https://www.myhardware.top/verilog功能模块-spi主机和从机02-spi主机设计思路与代码解/)
+
+[Verilog功能模块–SPI从机和从机(03)–SPI从机设计思路与代码解析 – 徐晓康的博客](https://www.myhardware.top/verilog功能模块-spi从机和从机03-spi从机设计思路与代码解/)
+
+[Verilog功能模块–SPI主机和从机(04)–SPI主机从机回环仿真 – 徐晓康的博客](https://www.myhardware.top/verilog功能模块-spi主机和从机04-spi主机从机回环仿真/)
+
+[Verilog功能模块–SPI主机和从机(05)–ADX112 SPI驱动实测 – 徐晓康的博客](https://www.myhardware.top/verilog功能模块-spi主机和从机05-adx112-spi驱动实测/)
+
+[Verilog功能模块–SPI主机和从机(06)–MAX31865 Demo SPI驱动实测 – 徐晓康的博客](https://www.myhardware.top/verilog功能模块-spi主机和从机06-max31865-demo-spi驱动实测/)
+
+## 其它平台
+
+微信公众号：`徐晓康的博客`
+
+<img src="https://picgo-dakang.oss-cn-hangzhou.aliyuncs.com/img/%E5%BE%90%E6%99%93%E5%BA%B7%E7%9A%84%E5%8D%9A%E5%AE%A2%E5%85%AC%E4%BC%97%E5%8F%B7%E4%BA%8C%E7%BB%B4%E7%A0%81.jpg" alt="徐晓康的博客公众号二维码" />
+

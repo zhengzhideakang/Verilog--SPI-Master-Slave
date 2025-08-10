@@ -3,7 +3,7 @@
  * @Email        :
  * @Date         : 2025-06-28 22:21:41
  * @LastEditors  : Xu Xiaokang
- * @LastEditTime : 2025-06-30 01:31:46
+ * @LastEditTime : 2025-07-01 21:41:21
  * @Filename     : mySPI_4Wire_Slave.v
  * @Description  : 通用SPI-4线通信从机
 */
@@ -89,24 +89,27 @@ end
 
 
 //++ 发送数据 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+/*
+原则是先采样再移位
+*/
 reg [$clog2(DATA_WIDTH+1)-1:0] sample_cnt; // 采样计数
 reg [DATA_WIDTH-1:0] tx_data_lsfr;// 移位寄存器
 
 generate
-if (SPI_MODE == 0 || SPI_MODE == 3) begin // 下降沿移位
+if (SPI_MODE == 0 || SPI_MODE == 3) begin // 下降沿移位, 第一个下降沿移位
   always @(negedge spi_sclk or negedge spi_cs_n) begin
     if (spi_cs_n_old)
       tx_data_lsfr <= spi_slave_tx_data;  // 片选下降沿加载发送数据
-    else if (~spi_cs_n && sample_cnt != 'd0) // 首个下降沿不移位
+    else if (~spi_cs_n && sample_cnt != 'd0)
       tx_data_lsfr <= tx_data_lsfr << 1;
     else
       tx_data_lsfr <= tx_data_lsfr;
   end
-end else begin // 上升沿移位
+end else begin // 上升沿移位, 第一个上升沿不移位
   always @(posedge spi_sclk or negedge spi_cs_n) begin
     if (spi_cs_n_old)
       tx_data_lsfr <= spi_slave_tx_data;  // 片选下降沿加载发送数据
-    else if (~spi_cs_n)
+    else if (~spi_cs_n && sample_cnt != 'd0)
       tx_data_lsfr <= tx_data_lsfr << 1;
     else
       tx_data_lsfr <= tx_data_lsfr;
@@ -114,7 +117,7 @@ end else begin // 上升沿移位
 end
 endgenerate
 
-assign spi_miso = spi_cs_n ? 1'bz : tx_data_lsfr[DATA_WIDTH-1]; // 三态输出控制
+assign spi_miso = spi_slave_tx_is_busy ? tx_data_lsfr[DATA_WIDTH-1] : 1'bz; // 三态输出控制
 //-- 发送数据 ------------------------------------------------------------
 
 
