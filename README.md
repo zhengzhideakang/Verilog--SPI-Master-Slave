@@ -20,7 +20,7 @@
 
 6. 支持指定CS高电平持续时间
 
-## 二、模块框图
+## 三、模块框图
 
 <img src="https://picgo-dakang.oss-cn-hangzhou.aliyuncs.com/img/Verilog%E5%8A%9F%E8%83%BD%E6%A8%A1%E5%9D%97--SPI%E4%B8%BB%E6%9C%BA%E5%92%8C%E4%BB%8E%E6%9C%BA(02)--SPI%E4%B8%BB%E6%9C%BA%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF%E4%B8%8E%E4%BB%A3%E7%A0%81%E8%A7%A3%E6%9E%90-2.svg" />
 
