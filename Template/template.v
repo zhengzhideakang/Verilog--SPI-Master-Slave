@@ -3,7 +3,7 @@
  * @Email        :
  * @Date         : 2025-07-28 23:28:35
  * @LastEditors  : Xu Xiaokang
- * @LastEditTime : 2025-08-07 16:39:46
+ * @LastEditTime : 2025-11-22 16:02:37
  * @Filename     : template.v
  * @Description  : 实例化模板
 */
@@ -18,13 +18,19 @@ localparam integer SCLK_EDGE_TO_CS_EDGE_CLK_NUM = 3;   // TCCH, 最后一个SCLK
 localparam integer CS_KEEP_HIGH_CLK_NUM         = 2;   // TCWH, CS_N低电平后保持高电平的时间对应CLK数, 最小为2
 localparam integer CLK_FREQ_MHZ                 = 100; // 模块工作时钟, 常用100/120
 
+//~ 外部控制SPI信号
+wire spi_begin;   // SPI单次通信开始, 高电平有效, 仅在spi_is_busy为低时起作用
+wire spi_end;     // SPI单次通信结束, 高电平有效, 只会持续一个时钟周期
+wire spi_is_busy; // SPI繁忙指示, 高电平表示SPI正在工作
+wire [DATA_WIDTH-1:0] spi_master_tx_data; // SPI发送数据, 数据总是高位先发
+wire [DATA_WIDTH-1:0] spi_master_rx_data; // SPI接收数据, 最先读出的数据在最高位
+wire                  spi_master_rx_data_valid; // SPI接收数据有效，高电平有效
 
-wire spi_begin;
-wire spi_end;
-wire spi_is_busy;
-wire [DATA_WIDTH-1:0] spi_master_tx_data;
-wire [DATA_WIDTH-1:0] spi_master_rx_data;
-wire                  spi_master_rx_data_valid;
+//~ SPI硬线链接
+wire spi_cs_n; // 片选, 低电平有效
+wire spi_sclk; // SPI时钟, 主机提供
+wire spi_mosi; // 主机输出从机输入
+wire spi_miso; // 主机输入从机输出
 
 mySPI_4Wire_Master #(
   .SPI_MODE                     (SPI_MODE                    ),

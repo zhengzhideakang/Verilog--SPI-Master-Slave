@@ -77,6 +77,8 @@ initial begin
     $error("SCLK_EDGE_TO_CS_EDGE_CLK_NUM must >= 3");
   if (CS_KEEP_HIGH_CLK_NUM < 2)
     $error("CS_KEEP_HIGH_CLK_NUM must >= 2");
+  if (CLK_FREQ_MHZ < 10 || CLK_FREQ_MHZ > 300 || CLK_FREQ_MHZ % 10 != 0)
+    $error("CLK_FREQ_MHZ must even and >= 10 and <= 300");
 end
 //-- 参数有效性检查 ------------------------------------------------------------
 
