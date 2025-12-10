@@ -3,7 +3,7 @@
  * @Email        :
  * @Date         : 2025-06-29 17:51:21
  * @LastEditors  : Xu Xiaokang
- * @LastEditTime : 2025-07-01 11:17:49
+ * @LastEditTime : 2025-12-10 16:02:34
  * @Filename     : mySPI_4Wire_LoopBack.v
  * @Description  : SPI-4线主机和从机回环测试
 */
@@ -101,7 +101,14 @@ always @(posedge clk) begin
   rstn_r1 <= rstn;
 end
 
-assign spi_begin = rstn_r1;
+reg rstn_r1_r1;
+always @(posedge clk) begin
+  rstn_r1_r1 <= rstn_r1;
+end
+
+wire rstn_r1_pedge = rstn_r1 && ~rstn_r1_r1;
+
+assign spi_begin = rstn_r1_pedge || spi_end; //* 以spi_end直接作为下一次SPI传输开始信号
 
 always @(posedge clk) begin
   if (~rstn)
