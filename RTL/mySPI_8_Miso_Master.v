@@ -3,7 +3,7 @@
  * @Email        :
  * @Date         : 2025-06-27 09:18:49
  * @LastEditors  : Xu Xiaokang
- * @LastEditTime : 2025-12-10 00:29:01
+ * @LastEditTime : 2025-12-11 21:59:34
  * @Filename     : mySPI_8_Miso_Master.v
  * @Description  : 通用SPI-4线通信主机, 8个miso通道同时读
 */
@@ -44,9 +44,16 @@ module mySPI_8_Miso_Master
   parameter integer CS_KEEP_HIGH_CLK_NUM         = 2,  // TCWH, CS_N低电平后保持高电平的时间对应CLK数, 最小为2
   parameter integer CLK_FREQ_MHZ                 = 100 // 模块工作时钟, 常用100/120
 )(
-  // 外部控制SPI信号
-  input  wire spi_begin,   // SPI单次通信开始, 高电平有效, 仅在spi_is_busy为低时起作用
-  output wire spi_end,     // SPI单次通信结束, 高电平有效, 只会持续一个时钟周期
+  //~ 外部控制SPI信号
+  /*
+  控制SPI单次通信开始, 上升沿有效, 仅在spi_is_busy为低时起作用
+  在连续写入时可使用spi_end信号作为下一次SPI通信的开始信号
+  也可以使用spi_is_busy的下降沿作为下一次SPI通信的开始信号, spi_end与spi_is_busy的下降沿其实完全重合
+  而spi_end或spi_is_busy的下降沿经寄存器打一拍之后的信号作为开始信号更好, 时序余量更充足
+  * 更建议使用spi_end, 它是寄存器输出信号, 时序性能更好
+  */
+  input  wire spi_begin,
+  output reg  spi_end,     // SPI单次通信结束, 高电平有效, 只会持续一个时钟周期
   output wire spi_is_busy, // SPI繁忙指示, 高电平表示SPI正在工作
   input  wire [DATA_WIDTH-1:0] spi_master_tx_data, // SPI发送数据, 数据总是高位先发
   output wire [DATA_WIDTH-1:0] spi_master_rx_data_ch1, // SPI接收数据, 最先读出的数据在最高位
@@ -102,6 +109,16 @@ localparam CPOL = (SPI_MODE == 2 || SPI_MODE == 3); // SCLK空闲值
 //-- 本地参数 ------------------------------------------------------------
 
 
+//++ 输入寄存 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+reg spi_begin_r1;
+always @(posedge clk) begin
+  spi_begin_r1 <= spi_begin;
+end
+
+wire spi_begin_pedge = spi_begin && ~spi_begin_r1;
+//-- 输入寄存 ------------------------------------------------------------
+
+
 //++ 三段式状态机-状态定义 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //~ 状态定义
 localparam IDLE = 5'd1 << 0;// 空闲态, 'h1
@@ -133,11 +150,11 @@ wire tcwh_end;
 always @(*) begin
   next = state;
   case (state)
-    IDLE: if (spi_begin) next = TCC;
-    TCC:  if (tcc_end  ) next = SCLK;
-    SCLK: if (sclk_end ) next = TCCH;
-    TCCH: if (tcch_end ) next = TCWH;
-    TCWH: if (tcwh_end ) next = IDLE;
+    IDLE: if (spi_begin_pedge) next = TCC ;
+    TCC : if (tcc_end        ) next = SCLK;
+    SCLK: if (sclk_end       ) next = TCCH;
+    TCCH: if (tcch_end       ) next = TCWH;
+    TCWH: if (tcwh_end       ) next = IDLE;
     default: next = IDLE;
   endcase
 end
@@ -200,7 +217,7 @@ always @(posedge clk) begin
   endcase
 end
 
-assign spi_sclk = spi_is_busy ? spi_sclk_tmp : 1'bz;
+assign spi_sclk = spi_sclk_tmp;
 
 wire spi_sample_edge;
 localparam SCLK_CLK_MAX = DATA_WIDTH;
@@ -245,6 +262,19 @@ assign tcwh_end = tcwh_clk_cnt == TCWH_CLK_CNT_MAX;
 //-- CS_KEEP_HIGH_CLK_NUM计时 ------------------------------------------
 
 
+//++ SPI结束 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+always @(posedge clk) begin
+  spi_end <= 1'b0;
+  case (state)
+    TCWH:
+      if (tcwh_end)
+        spi_end <= 1'b1;
+    default: ;
+  endcase
+end
+//-- SPI结束 ------------------------------------------------------------
+
+
 //++ 确定采样与移位时刻 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 wire spi_update_edge;
 
@@ -274,13 +304,13 @@ reg [DATA_WIDTH-1:0] spi_master_tx_data_lfsr;
 always @(posedge clk) begin
   spi_master_tx_data_lfsr <= spi_master_tx_data_lfsr;
   case (state)
-    IDLE: if (spi_begin) spi_master_tx_data_lfsr <= spi_master_tx_data;
+    IDLE: if (spi_begin_pedge) spi_master_tx_data_lfsr <= spi_master_tx_data;
     SCLK: if (spi_update_edge) spi_master_tx_data_lfsr <= spi_master_tx_data_lfsr << 1;
     default: ;
   endcase
 end
 
-assign spi_mosi = spi_is_busy ? spi_master_tx_data_lfsr[DATA_WIDTH-1] : 1'bz;
+assign spi_mosi = spi_master_tx_data_lfsr[DATA_WIDTH-1];
 //-- SPI发送 ------------------------------------------------------------
 
 
@@ -328,8 +358,9 @@ if (CPHA == 0) begin // 数据采样后, SCLK值与默认相反, 所以需要经
   always @(posedge clk) begin
     sclk_end_tmp <= 1'b0;
     case (state)
-      SCLK: if (sclk_sample_cnt == SCLK_CLK_MAX && sclk_clk_cnt == SCLK_CNT_HALF)
-        sclk_end_tmp <= 1'b1;
+      SCLK:
+        if (sclk_sample_cnt == SCLK_CLK_MAX && sclk_clk_cnt == SCLK_CNT_HALF)
+          sclk_end_tmp <= 1'b1;
       default: ;
     endcase
   end
@@ -348,11 +379,6 @@ assign spi_master_rx_data_ch6 = spi_master_rx_data_chs[5];
 assign spi_master_rx_data_ch7 = spi_master_rx_data_chs[6];
 assign spi_master_rx_data_ch8 = spi_master_rx_data_chs[7];
 //-- SPI接收 ------------------------------------------------------------
-
-
-//++ SPI结束 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-assign spi_end = tcwh_end;
-//-- SPI结束 ------------------------------------------------------------
 
 
 endmodule

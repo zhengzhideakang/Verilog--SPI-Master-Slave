@@ -3,7 +3,7 @@
  * @Email        :
  * @Date         : 2025-06-27 09:18:49
  * @LastEditors  : Xu Xiaokang
- * @LastEditTime : 2025-12-10 16:19:40
+ * @LastEditTime : 2025-12-11 21:58:20
  * @Filename     : mySPI_4Wire_Master.v
  * @Description  : 通用SPI-4线通信主机
 */
@@ -208,7 +208,7 @@ always @(posedge clk) begin
   endcase
 end
 
-assign spi_sclk = spi_is_busy ? spi_sclk_tmp : 1'bz;
+assign spi_sclk = spi_sclk_tmp;
 
 wire spi_sample_edge;
 localparam SCLK_CLK_MAX = DATA_WIDTH;
@@ -257,9 +257,7 @@ assign tcwh_end = tcwh_clk_cnt == TCWH_CLK_CNT_MAX;
 always @(posedge clk) begin
   spi_end <= 1'b0;
   case (state)
-    TCWH:
-      if (tcwh_end)
-        spi_end <= 1'b1;
+    TCWH: if (tcwh_end) spi_end <= 1'b1;
     default: ;
   endcase
 end
@@ -301,7 +299,7 @@ always @(posedge clk) begin
   endcase
 end
 
-assign spi_mosi = spi_is_busy ? spi_master_tx_data_lfsr[DATA_WIDTH-1] : 1'bz;
+assign spi_mosi = spi_master_tx_data_lfsr[DATA_WIDTH-1];
 //-- SPI发送 ------------------------------------------------------------
 
 
@@ -309,7 +307,9 @@ assign spi_mosi = spi_is_busy ? spi_master_tx_data_lfsr[DATA_WIDTH-1] : 1'bz;
 always @(posedge clk) begin
   spi_master_rx_data <= spi_master_rx_data;
   case (state)
-    SCLK: if (spi_sample_edge) spi_master_rx_data <= {spi_master_rx_data[DATA_WIDTH-2:0] , spi_miso};
+    SCLK:
+      if (spi_sample_edge)
+        spi_master_rx_data <= {spi_master_rx_data[DATA_WIDTH-2:0] , spi_miso};
     default: ;
   endcase
 end
@@ -317,7 +317,9 @@ end
 always @(posedge clk) begin
   spi_master_rx_data_valid <= 1'b0;
   case (state)
-    SCLK: if (sclk_sample_cnt == SCLK_CLK_MAX - 1 && spi_sample_edge) spi_master_rx_data_valid <= 1'b1;
+    SCLK:
+      if (sclk_sample_cnt == SCLK_CLK_MAX - 1 && spi_sample_edge)
+        spi_master_rx_data_valid <= 1'b1;
     default: ;
   endcase
 end
@@ -328,8 +330,9 @@ if (CPHA == 0) begin // 数据采样后, SCLK值与默认相反, 所以需要经
   always @(posedge clk) begin
     sclk_end_tmp <= 1'b0;
     case (state)
-      SCLK: if (sclk_sample_cnt == SCLK_CLK_MAX && sclk_clk_cnt == SCLK_CNT_HALF)
-        sclk_end_tmp <= 1'b1;
+      SCLK:
+        if (sclk_sample_cnt == SCLK_CLK_MAX && sclk_clk_cnt == SCLK_CNT_HALF)
+          sclk_end_tmp <= 1'b1;
       default: ;
     endcase
   end
