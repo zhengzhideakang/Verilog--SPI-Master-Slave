@@ -3,7 +3,7 @@
  * @Email        :
  * @Date         : 2025-06-27 09:18:49
  * @LastEditors  : Xu Xiaokang
- * @LastEditTime : 2025-12-11 21:58:20
+ * @LastEditTime : 2025-12-20 01:41:35
  * @Filename     : mySPI_4Wire_Master.v
  * @Description  : 通用SPI-4线通信主机
 */
@@ -30,11 +30,20 @@
 % 2.CPHA: 时钟相位, 定义数据采样时机
 %   - 0: 在时钟的第一个边沿采样数据
 %   - 1: 在时钟的第二个边沿采样数据
-! 版本
+! 版本更新记录
 * 版本号 |  发布时间    | 修改说明
 * V1.0  | 2025-08-24 | 初始发布
 * V1.1  | 2025-12-10 | 将spi_begin更改为上升沿有效, 增加了关于spi_begin使用说明的注释
 *                    | 修正了spi_end在CS_KEEP_HIGH_CLK_NUM取2时总是为1的BUG
+* V1.2  | 2025-12-19 | 修改了采样时刻, 原本是spi_sample_edge, 现改为 spi_sample_edge_r1,
+*                    | 在实际芯片的驱动中, 对于 CLK_DIV_SCLK>=4,,延后一个clk采样没有任何影响, 不会从上升沿
+*                    | 变为下降沿或从下降沿变为上升沿, 所以此时用spi_sample_edge_r1没有影响
+*                    | 而对于CLK_DIV_SCLK=2, 延后一个clk会变为另一个边沿, 理论上采样边沿就变为移位边沿了
+*                    | 但对于实际电路, 走线有延迟, 从机输出有延迟, 而FPGA输入建立和保持时间一般为几ps等级
+*                    | 所以, 在spi_sample_edge_r1时刻采样能保证采到芯片上一次输出的数据, 本次sclk周期输出
+*                    | 必然还没有到达, 不会有问题, 故进行此更新, 为采样时间留出更多的时序裕量
+*                    | 实际调试时, 对于一些极端情况, 如CLK=100MHz, 而SCLK=50MHz, spi_sample_edge时刻采样
+*                    | 会时不时出现采样错误的情况, 换成spi_sample_edge_r1就稳定了
 */
 
 `default_nettype none
@@ -257,7 +266,9 @@ assign tcwh_end = tcwh_clk_cnt == TCWH_CLK_CNT_MAX;
 always @(posedge clk) begin
   spi_end <= 1'b0;
   case (state)
-    TCWH: if (tcwh_end) spi_end <= 1'b1;
+    TCWH:
+      if (tcwh_end)
+        spi_end <= 1'b1;
     default: ;
   endcase
 end
@@ -304,12 +315,17 @@ assign spi_mosi = spi_master_tx_data_lfsr[DATA_WIDTH-1];
 
 
 //++ SPI接收 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+reg spi_sample_edge_r1;
+always @(posedge clk) begin
+  spi_sample_edge_r1 <= spi_sample_edge;
+end
+
 always @(posedge clk) begin
   spi_master_rx_data <= spi_master_rx_data;
   case (state)
     SCLK:
-      if (spi_sample_edge)
-        spi_master_rx_data <= {spi_master_rx_data[DATA_WIDTH-2:0] , spi_miso};
+      if (spi_sample_edge_r1)
+        spi_master_rx_data <= {spi_master_rx_data[DATA_WIDTH-2:0], spi_miso};
     default: ;
   endcase
 end
@@ -318,7 +334,7 @@ always @(posedge clk) begin
   spi_master_rx_data_valid <= 1'b0;
   case (state)
     SCLK:
-      if (sclk_sample_cnt == SCLK_CLK_MAX - 1 && spi_sample_edge)
+      if (sclk_sample_cnt == SCLK_CLK_MAX && spi_sample_edge_r1)
         spi_master_rx_data_valid <= 1'b1;
     default: ;
   endcase

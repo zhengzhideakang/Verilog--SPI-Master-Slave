@@ -23,10 +23,10 @@ timeprecision 1ps;
 
 
 //++ 被测模块实例化 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-localparam integer SPI_MODE                     = 2;   // SPI模式, 可选0, 1, 2, 3 (默认)
-localparam integer DATA_WIDTH                   = 16;  // 单次通信发送或接收数据的位宽, 最小为2, 常见8/16
-localparam integer SCLK_PERIOD_CLK_NUM          = 4;  // fSCLK, SCLK周期对应CLK数, 必须为偶数, 最小为2
-localparam integer CS_EDGE_TO_SCLK_EDGE_CLK_NUM = 3;   // TCC, CS_N下降沿到SCLK的第一个边沿对应CLK数, 最小为1
+localparam integer SPI_MODE                     = 3;   // SPI模式, 可选0, 1, 2, 3 (默认)
+localparam integer DATA_WIDTH                   = 8;  // 单次通信发送或接收数据的位宽, 最小为2, 常见8/16
+localparam integer SCLK_PERIOD_CLK_NUM          = 2;  // fSCLK, SCLK周期对应CLK数, 必须为偶数, 最小为2
+localparam integer CS_EDGE_TO_SCLK_EDGE_CLK_NUM = 1;   // TCC, CS_N下降沿到SCLK的第一个边沿对应CLK数, 最小为1
 localparam integer SCLK_EDGE_TO_CS_EDGE_CLK_NUM = 3;   // TCCH, 最后一个SCLK边沿到CS_N上升沿对应CLK数, 最小为3
 localparam integer CS_KEEP_HIGH_CLK_NUM         = 2;   // TCWH, CS_N低电平后保持高电平的时间对应CLK数, 最小为2
 localparam integer CLK_FREQ_MHZ                 = 100; // 模块工作时钟, 常用100/120
