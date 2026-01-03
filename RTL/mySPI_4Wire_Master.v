@@ -3,7 +3,7 @@
  * @Email        :
  * @Date         : 2025-06-27 09:18:49
  * @LastEditors  : Xu Xiaokang
- * @LastEditTime : 2025-12-20 01:41:35
+ * @LastEditTime : 2026-01-03 03:40:15
  * @Filename     : mySPI_4Wire_Master.v
  * @Description  : 通用SPI-4线通信主机
 */
@@ -44,6 +44,11 @@
 *                    | 必然还没有到达, 不会有问题, 故进行此更新, 为采样时间留出更多的时序裕量
 *                    | 实际调试时, 对于一些极端情况, 如CLK=100MHz, 而SCLK=50MHz, spi_sample_edge时刻采样
 *                    | 会时不时出现采样错误的情况, 换成spi_sample_edge_r1就稳定了
+* V1.3  | 2026-01-03 | 在RDC驱动模块使用此SPI模块时发现, SCLK_PERIOD_CLK_NUM = 2时写入和读取均错误
+*                    | 查看时序图发现, 采样时刻和数据变化时刻相同, 推测可能原因是RDC与FPGA连线很短, 且RDC数据更新
+*                    | 速度非常快, 这使得在原采样时刻延迟一个时钟再采样造成采样时刻数据不稳了, 为兼顾这种情况,
+*                    | 先新增 SAMPLE_DELAY_ONE_CLK_EN 参数用于选择是标准的上升/下降沿采样, 还是延迟一个clk周期
+*                    | 后再采样, 以适配不同的外部驱动芯片时序
 */
 
 `default_nettype none
@@ -56,6 +61,7 @@ module mySPI_4Wire_Master
   parameter integer CS_EDGE_TO_SCLK_EDGE_CLK_NUM = 1,  // TCC, CS_N下降沿到SCLK的第一个边沿对应CLK数, 最小为1
   parameter integer SCLK_EDGE_TO_CS_EDGE_CLK_NUM = 3,  // TCCH, 最后一个SCLK边沿到CS_N上升沿对应CLK数, 最小为3
   parameter integer CS_KEEP_HIGH_CLK_NUM         = 2,  // TCWH, CS_N低电平后保持高电平的时间对应CLK数, 最小为2
+  parameter [0:0] SAMPLE_DELAY_ONE_CLK_EN = 1, // 采样时刻延迟一个CLK周期
   parameter integer CLK_FREQ_MHZ                 = 100 // 模块工作时钟, 常用100/120
 )(
   //~ 外部控制SPI信号
@@ -315,30 +321,55 @@ assign spi_mosi = spi_master_tx_data_lfsr[DATA_WIDTH-1];
 
 
 //++ SPI接收 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-reg spi_sample_edge_r1;
-always @(posedge clk) begin
-  spi_sample_edge_r1 <= spi_sample_edge;
-end
+generate
+if (SAMPLE_DELAY_ONE_CLK_EN == 1) begin
+  reg spi_sample_edge_r1;
+  always @(posedge clk) begin
+    spi_sample_edge_r1 <= spi_sample_edge;
+  end
 
-always @(posedge clk) begin
-  spi_master_rx_data <= spi_master_rx_data;
-  case (state)
-    SCLK:
-      if (spi_sample_edge_r1)
-        spi_master_rx_data <= {spi_master_rx_data[DATA_WIDTH-2:0], spi_miso};
-    default: ;
-  endcase
-end
+  always @(posedge clk) begin
+    spi_master_rx_data <= spi_master_rx_data;
+    case (state)
+      SCLK:
+        if (spi_sample_edge_r1)
+          spi_master_rx_data <= {spi_master_rx_data[DATA_WIDTH-2:0], spi_miso};
+      default: ;
+    endcase
+  end
 
-always @(posedge clk) begin
-  spi_master_rx_data_valid <= 1'b0;
-  case (state)
-    SCLK:
-      if (sclk_sample_cnt == SCLK_CLK_MAX && spi_sample_edge_r1)
-        spi_master_rx_data_valid <= 1'b1;
-    default: ;
-  endcase
+  always @(posedge clk) begin
+    spi_master_rx_data_valid <= 1'b0;
+    case (state)
+      SCLK:
+        if (sclk_sample_cnt == SCLK_CLK_MAX && spi_sample_edge_r1)
+          spi_master_rx_data_valid <= 1'b1;
+      default: ;
+    endcase
+  end
+end else begin
+  always @(posedge clk) begin
+    spi_master_rx_data <= spi_master_rx_data;
+    case (state)
+      SCLK:
+        if (spi_sample_edge)
+          spi_master_rx_data <= {spi_master_rx_data[DATA_WIDTH-2:0], spi_miso};
+      default: ;
+    endcase
+  end
+
+  always @(posedge clk) begin
+    spi_master_rx_data_valid <= 1'b0;
+    case (state)
+      SCLK:
+        if (sclk_sample_cnt == SCLK_CLK_MAX - 1 && spi_sample_edge)
+          spi_master_rx_data_valid <= 1'b1;
+      default: ;
+    endcase
+  end
 end
+endgenerate
+
 
 generate
 if (CPHA == 0) begin // 数据采样后, SCLK值与默认相反, 所以需要经过半个周期变化到默认值, SCLK状态才能结束
