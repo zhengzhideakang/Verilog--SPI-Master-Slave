@@ -3,7 +3,7 @@
  * @Email        :
  * @Date         : 2025-06-27 09:18:49
  * @LastEditors  : Xu Xiaokang
- * @LastEditTime : 2026-01-03 03:40:15
+ * @LastEditTime : 2026-03-14 14:58:23
  * @Filename     : mySPI_4Wire_Master.v
  * @Description  : 通用SPI-4线通信主机
 */
@@ -66,11 +66,11 @@ module mySPI_4Wire_Master
 )(
   //~ 外部控制SPI信号
   /*
-  控制SPI单次通信开始, 上升沿有效, 仅在spi_is_busy为低时起作用
-  在连续写入时可使用spi_end信号作为下一次SPI通信的开始信号
-  也可以使用spi_is_busy的下降沿作为下一次SPI通信的开始信号, spi_end与spi_is_busy的下降沿其实完全重合
-  而spi_end或spi_is_busy的下降沿经寄存器打一拍之后的信号作为开始信号更好, 时序余量更充足
-  * 更建议使用spi_end, 它是寄存器输出信号, 时序性能更好
+  * spi_begin 控制SPI单次通信开始, 上升沿有效, 仅在 spi_is_busy 为低时起作用
+  * 在连续写入时可使用 spi_end 信号作为下一次SPI通信的开始信号
+  * 也可以使用 spi_is_busy 的下降沿作为下一次SPI通信的开始信号, spi_end 与 spi_is_busy 的下降沿其实完全重合
+  % 建议使用 spi_end, 它是寄存器输出信号, 时序性能更好
+  % 更建议使用 spi_end 经寄存器打一拍之后的信号作为开始信号, 时序余量更充足
   */
   input  wire spi_begin,
   output reg  spi_end,     // SPI单次通信结束, 高电平有效, 只会持续一个时钟周期
